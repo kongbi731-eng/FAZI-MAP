@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAZI Map Light</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQzFjLx3hR8NP5X0yvjDCn8dLzP7j8A="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <style>
+    .leaflet-container {
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .leaflet-tile {
+      filter: inherit;
+      width: 256px;
+      height: 256px;
+      max-width: none !important;
+      max-height: none !important;
+      visibility: hidden;
+    }
+
+    .leaflet-tile-loaded {
+      visibility: inherit;
+    }
+
+    .leaflet-map-pane {
+      z-index: 400;
+    }
+
+    .leaflet-tile-pane {
+      z-index: 200;
+    }
+
+    .leaflet-overlay-pane {
+      z-index: 400;
+    }
+
+    .leaflet-marker-pane {
+      z-index: 600;
+    }
+
+    .leaflet-tooltip-pane {
+      z-index: 650;
+    }
+
+    .leaflet-popup-pane {
+      z-index: 700;
+    }
+
+    .leaflet-control {
+      position: relative;
+      z-index: 800;
+      pointer-events: auto;
+    }
+
+    .leaflet-top,
+    .leaflet-bottom {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .leaflet-top {
+      top: 0;
+    }
+
+    .leaflet-right {
+      right: 0;
+    }
+
+    .leaflet-bottom {
+      bottom: 0;
+    }
+
+    .leaflet-left {
+      left: 0;
+    }
+
+    .leaflet-control-container .leaflet-top,
+    .leaflet-control-container .leaflet-bottom {
+      transform: translate3d(0, 0, 0);
+    }
+
+    .leaflet-control-zoom a {
+      display: block;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .leaflet-popup {
+      position: absolute;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .leaflet-popup-content-wrapper {
+      text-align: left;
+    }
+
+    .leaflet-popup-tip-container {
+      width: 40px;
+      height: 20px;
+      position: absolute;
+      left: 50%;
+      margin-left: -20px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .leaflet-popup-tip {
+      width: 17px;
+      height: 17px;
+      padding: 1px;
+      margin: -10px auto 0;
+      transform: rotate(45deg);
+    }
+
+    html,
+    body,
+    #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: #0a0a0a;
+      color: #f5f5f5;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    input,
+    button {
+      font: inherit;
+    }
+
+    .leaflet-container {
+      background: #0a0a0a;
+      font-family: inherit;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+    }
+
+    .leaflet-control-zoom a {
+      background: rgba(10, 10, 10, 0.82) !important;
+      color: rgba(245, 245, 245, 0.86) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(10, 10, 10, 0.72) !important;
+      color: rgba(245, 245, 245, 0.58) !important;
+      border-radius: 6px 0 0 0;
+    }
+
+    .leaflet-control-attribution a {
+      color: rgba(248, 113, 113, 0.86) !important;
+    }
+
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: rgba(15, 15, 15, 0.94);
+      color: #f5f5f5;
+      border: 1px solid rgba(255, 38, 38, 0.44);
+      box-shadow: 0 18px 52px rgba(0, 0, 0, 0.52), 0 0 28px rgba(255, 0, 0, 0.22);
+      backdrop-filter: blur(14px);
+    }
+
+    .leaflet-popup-content {
+      margin: 14px 16px;
+      min-width: 220px;
+    }
+
+    .leaflet-popup-close-button {
+      color: rgba(245, 245, 245, 0.72) !important;
+    }
+
+    .fazi-marker,
+    .fazi-marker-user,
+    .fazi-marker-draft {
+      position: relative;
+      display: block;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+    }
+
+    .fazi-marker::after,
+    .fazi-marker-user::after,
+    .fazi-marker-draft::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      transform: translate(-50%, -50%);
+    }
+
+    .fazi-marker {
+      background: #dc2626;
+      box-shadow:
+        0 0 0 8px rgba(220, 38, 38, 0.15),
+        0 0 24px rgba(239, 68, 68, 0.9),
+        0 0 48px rgba(185, 28, 28, 0.42);
+    }
+
+    .fazi-marker-user {
+      background: #ef4444;
+      box-shadow:
+        0 0 0 8px rgba(239, 68, 68, 0.16),
+        0 0 26px rgba(248, 113, 113, 0.95),
+        0 0 52px rgba(220, 38, 38, 0.44);
+    }
+
+    .fazi-marker-draft {
+      background: #991b1b;
+      box-shadow:
+        0 0 0 8px rgba(153, 27, 27, 0.14),
+        0 0 24px rgba(239, 68, 68, 0.72),
+        0 0 48px rgba(127, 29, 29, 0.32);
+    }
+
+    .panel-scroll {
+      scrollbar-color: rgba(248, 113, 113, 0.52) rgba(255, 255, 255, 0.08);
+      scrollbar-width: thin;
+    }
+
+    .theme-bulb svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    body.light-mode {
+      background: #f4f1ec;
+      color: #171717;
+    }
+
+    body.light-mode main {
+      background: #f4f1ec !important;
+    }
+
+    body.light-mode .leaflet-container {
+      background: #f4f1ec;
+    }
+
+    body.light-mode section,
+    body.light-mode aside {
+      background: rgba(255, 255, 255, 0.78) !important;
+      border-color: rgba(220, 38, 38, 0.28) !important;
+      box-shadow: 0 24px 70px rgba(23, 23, 23, 0.12) !important;
+    }
+
+    body.light-mode input,
+    body.light-mode textarea {
+      background: rgba(255, 255, 255, 0.86) !important;
+      border-color: rgba(163, 163, 163, 0.65) !important;
+      color: #171717 !important;
+    }
+
+    body.light-mode input::placeholder,
+    body.light-mode textarea::placeholder {
+      color: rgba(82, 82, 82, 0.56) !important;
+    }
+
+    body.light-mode .text-neutral-50,
+    body.light-mode .text-neutral-100 {
+      color: #171717 !important;
+    }
+
+    body.light-mode .text-neutral-200,
+    body.light-mode .text-neutral-300 {
+      color: #404040 !important;
+    }
+
+    body.light-mode .text-neutral-400,
+    body.light-mode .text-neutral-500,
+    body.light-mode .text-neutral-600 {
+      color: #737373 !important;
+    }
+
+    body.light-mode .bg-black\/45,
+    body.light-mode .bg-black\/55 {
+      background: rgba(255, 255, 255, 0.78) !important;
+    }
+
+    body.light-mode .bg-white\/\[0\.04\],
+    body.light-mode .bg-white\/\[0\.06\],
+    body.light-mode .bg-white\/\[0\.07\] {
+      background: rgba(255, 255, 255, 0.86) !important;
+    }
+
+    body.light-mode .border-white\/10 {
+      border-color: rgba(163, 163, 163, 0.58) !important;
+    }
+
+    body.light-mode .leaflet-control-zoom a,
+    body.light-mode .leaflet-control-attribution {
+      background: rgba(255, 255, 255, 0.86) !important;
+      color: rgba(23, 23, 23, 0.76) !important;
+    }
+
+    body.light-mode .leaflet-popup-content-wrapper,
+    body.light-mode .leaflet-popup-tip {
+      background: rgba(255, 255, 255, 0.96);
+      color: #171717;
+    }
+  </style>
+</head>
+<body>
+  <main class="relative h-screen w-screen bg-[#0a0a0a]">
+    <div id="map" aria-label="FAZI concert footprint map"></div>
+
+    <section class="absolute left-4 top-4 z-[1000] max-w-[calc(100vw-2rem)] border border-red-500/25 bg-black/45 px-5 py-4 shadow-2xl shadow-black/50 backdrop-blur-xl sm:left-6 sm:top-6">
+      <h1 class="text-xl font-semibold tracking-[0.18em] text-neutral-50 sm:text-2xl">FAZI MAP</h1>
+      <p class="mt-1 text-sm tracking-[0.28em] text-red-400/90">演出足迹合集</p>
+    </section>
+
+    <button id="themeToggle" class="theme-bulb absolute left-4 top-36 z-[1000] flex h-11 w-11 items-center justify-center border border-red-500/25 bg-black/45 text-red-100 shadow-2xl shadow-black/40 backdrop-blur-xl transition hover:border-red-300/70 hover:bg-red-500/15 sm:left-6" type="button" aria-label="切换开灯关灯模式" title="切换开灯/关灯">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 18h6" />
+        <path d="M10 22h4" />
+        <path d="M8.5 14.5c-1.2-1-2-2.6-2-4.4a5.5 5.5 0 0 1 11 0c0 1.8-.8 3.4-2 4.4-.8.7-1.1 1.3-1.2 2H9.7c-.1-.7-.4-1.3-1.2-2Z" />
+      </svg>
+    </button>
+
+    <aside class="absolute bottom-4 left-4 right-4 z-[1000] max-h-[52vh] overflow-hidden border border-red-500/20 bg-black/55 shadow-2xl shadow-black/60 backdrop-blur-xl md:bottom-auto md:left-auto md:right-6 md:top-6 md:w-[390px] md:max-h-[calc(100vh-3rem)]">
+      <div class="panel-scroll max-h-[52vh] overflow-y-auto p-4 md:max-h-[calc(100vh-3rem)] md:p-5">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-100">Add Footprint</h2>
+            <p class="mt-1 text-xs tracking-[0.18em] text-neutral-400">DATE / PLACE / ADDRESS</p>
+          </div>
+          <button id="fitRoute" class="border border-red-400/40 px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] text-red-100 transition hover:border-red-300/80 hover:bg-red-500/10" type="button">
+            View All
+          </button>
+        </div>
+
+        <form id="showForm" class="space-y-3">
+          <label class="block">
+            <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Date</span>
+            <input id="dateInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="date" required />
+          </label>
+
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">City</span>
+              <input id="cityInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="text" placeholder="西安" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Name</span>
+              <input id="venueInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="text" placeholder="演出名称" required />
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Address / 具体地址</span>
+            <input id="addressInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="text" placeholder="门牌号 + 路名 + 城市 + 国家/地区" required />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Photo Links</span>
+            <textarea id="linksInput" class="min-h-20 w-full resize-y border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" placeholder="可选：摄影/视频链接，每行一个"></textarea>
+          </label>
+
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Latitude</span>
+              <input id="latInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="number" min="-90" max="90" step="0.000001" placeholder="39.9042" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs uppercase tracking-[0.18em] text-neutral-400">Longitude</span>
+              <input id="lngInput" class="w-full border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-neutral-50 outline-none transition placeholder:text-neutral-600 focus:border-red-300/60" type="number" min="-180" max="180" step="0.000001" placeholder="116.4074" />
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button id="locateAddress" class="border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-red-50 transition hover:border-red-300/70 hover:bg-red-500/20" type="button">
+              Locate
+            </button>
+            <button id="useCenter" class="border border-white/10 bg-white/[0.07] px-3 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-neutral-200 transition hover:border-white/25 hover:bg-white/[0.11]" type="button">
+              Center
+            </button>
+          </div>
+
+          <div>
+            <button class="w-full border border-red-300/40 bg-red-500/20 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-red-50 transition hover:border-red-200/70 hover:bg-red-500/30" type="submit">
+              Add Show
+            </button>
+          </div>
+
+          <p id="formStatus" class="min-h-5 text-xs text-neutral-400" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="mt-5 border-t border-white/10 pt-4">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-300">Saved Shows</h3>
+            <button id="clearCustom" class="text-xs uppercase tracking-[0.14em] text-red-200/70 transition hover:text-red-100" type="button">Clear Mine</button>
+          </div>
+          <ol id="showList" class="space-y-2"></ol>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "fazi-concert-map-custom-shows";
+    const EMBEDDED_SHOWS = [];
+
+    const map = L.map("map", {
+      minZoom: 3,
+      zoomControl: false,
+      worldCopyJump: true
+    }).setView([38.5, 75], 3);
+
+    L.control.zoom({
+      position: "bottomright"
+    }).addTo(map);
+
+    const tileLayers = {
+      dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    };
+
+    const tileLayer = L.tileLayer(tileLayers.dark, {
+      minZoom: 3,
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+
+    const markerIcon = L.divIcon({
+      className: "",
+      html: '<span class="fazi-marker block"></span>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -24]
+    });
+
+    const userMarkerIcon = L.divIcon({
+      className: "",
+      html: '<span class="fazi-marker-user block"></span>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -24]
+    });
+
+    const draftMarkerIcon = L.divIcon({
+      className: "",
+      html: '<span class="fazi-marker-draft block"></span>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24]
+    });
+
+    const elements = {
+      form: document.querySelector("#showForm"),
+      date: document.querySelector("#dateInput"),
+      city: document.querySelector("#cityInput"),
+      venue: document.querySelector("#venueInput"),
+      address: document.querySelector("#addressInput"),
+      links: document.querySelector("#linksInput"),
+      lat: document.querySelector("#latInput"),
+      lng: document.querySelector("#lngInput"),
+      status: document.querySelector("#formStatus"),
+      list: document.querySelector("#showList"),
+      locateAddress: document.querySelector("#locateAddress"),
+      useCenter: document.querySelector("#useCenter"),
+      fitRoute: document.querySelector("#fitRoute"),
+      clearCustom: document.querySelector("#clearCustom"),
+      themeToggle: document.querySelector("#themeToggle")
+    };
+
+    let sampleShows = [];
+    let customShows = [];
+    let markerLayer = L.layerGroup().addTo(map);
+    let draftMarker = null;
+
+    const escapeHtml = (value) => {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    };
+
+    const normalizeUrl = (value) => {
+      const trimmed = value.trim();
+
+      if (!trimmed) {
+        return "";
+      }
+
+      if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+      }
+
+      return `https://${trimmed}`;
+    };
+
+    const parseLinks = (value) => {
+      return [...new Set(
+        value
+          .split(/\n|,/)
+          .map(normalizeUrl)
+          .filter(Boolean)
+      )];
+    };
+
+    const getShowLinks = (show) => {
+      return Array.isArray(show.links) ? show.links.filter(Boolean) : [];
+    };
+
+    const renderLinks = (links) => {
+      if (!links.length) {
+        return '<p class="text-xs leading-5 text-neutral-500">暂无摄影链接。</p>';
+      }
+
+      return `
+        <ul class="space-y-1.5">
+          ${links.map((link, index) => `
+            <li>
+              <a class="block break-all text-xs leading-5 text-red-200 underline decoration-red-400/40 underline-offset-4 transition hover:text-red-100" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
+                Link ${index + 1}
+              </a>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+    };
+
+    const formatDate = (dateString) => {
+      return new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(new Date(`${dateString}T00:00:00`));
+    };
+
+    const popupTemplate = (show) => `
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-xs uppercase tracking-[0.24em] text-red-300/80">${escapeHtml(formatDate(show.date))}</p>
+          <span class="text-[10px] uppercase tracking-[0.18em] text-neutral-500">${show.source === "custom" ? "Input" : "Archive"}</span>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold tracking-wide text-neutral-50">${escapeHtml(show.city)}</h2>
+          <p class="mt-1 text-sm text-neutral-300">${escapeHtml(show.venue)}</p>
+          ${show.address ? `<p class="mt-2 break-words text-xs leading-5 text-neutral-400">${escapeHtml(show.address)}</p>` : ""}
+          <p class="mt-2 text-[11px] leading-5 text-neutral-500">${escapeHtml(show.coordinates[0].toFixed(5))}, ${escapeHtml(show.coordinates[1].toFixed(5))}</p>
+        </div>
+        <div class="border-t border-white/10 pt-3">
+          <p class="mb-2 text-[10px] uppercase tracking-[0.18em] text-red-300/75">Photo Links</p>
+          ${renderLinks(getShowLinks(show))}
+          <form class="mt-3 flex gap-2" data-link-form="${escapeHtml(show.id)}">
+            <input class="min-w-0 flex-1 border border-white/10 bg-white/[0.07] px-2 py-1.5 text-xs text-neutral-50 outline-none placeholder:text-neutral-600 focus:border-red-300/60" type="url" placeholder="粘贴链接" data-link-input required />
+            <button class="shrink-0 border border-red-400/40 bg-red-500/15 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-red-50 hover:bg-red-500/25" type="submit">Add</button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const readCustomShows = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const saveCustomShows = () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customShows));
+    };
+
+    const getAllShows = () => {
+      return [...sampleShows, ...customShows]
+        .filter((show) => Array.isArray(show.coordinates) && show.coordinates.length === 2)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    };
+
+    const setDraftPosition = (latLng) => {
+      const lat = Number(latLng.lat.toFixed(6));
+      const lng = Number(latLng.lng.toFixed(6));
+
+      elements.lat.value = lat;
+      elements.lng.value = lng;
+
+      if (draftMarker) {
+        draftMarker.setLatLng([lat, lng]);
+      } else {
+        draftMarker = L.marker([lat, lng], { icon: draftMarkerIcon, zIndexOffset: 900 }).addTo(map);
+      }
+    };
+
+    const fitAllShows = () => {
+      const route = getAllShows().map((show) => show.coordinates);
+
+      if (!route.length) {
+        map.setView([38.5, 75], 3);
+        return;
+      }
+
+      map.fitBounds(L.latLngBounds(route), {
+        paddingTopLeft: [72, 120],
+        paddingBottomRight: [72, 80],
+        maxZoom: 6
+      });
+    };
+
+    const renderShowList = () => {
+      const allShows = getAllShows();
+      elements.list.innerHTML = "";
+
+      allShows.forEach((show) => {
+        const item = document.createElement("li");
+        item.className = "group border border-white/10 bg-white/[0.04] px-3 py-2.5";
+
+        const canDelete = show.source === "custom";
+        item.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <button class="min-w-0 flex-1 text-left" type="button" data-fly-to="${escapeHtml(show.id)}">
+              <span class="block break-words text-sm font-medium leading-5 text-neutral-100">${escapeHtml(show.city)} · ${escapeHtml(show.venue)}</span>
+              <span class="mt-1 block text-xs text-neutral-500">${escapeHtml(show.date)}</span>
+              ${show.address ? `<span class="mt-1 block break-words text-xs leading-5 text-neutral-400">${escapeHtml(show.address)}</span>` : ""}
+              <span class="mt-1 block break-words text-[11px] leading-5 text-neutral-600">${escapeHtml(show.coordinates[0].toFixed(5))}, ${escapeHtml(show.coordinates[1].toFixed(5))}</span>
+              <span class="mt-2 block text-[11px] uppercase tracking-[0.14em] text-red-300/75">${getShowLinks(show).length} Links</span>
+            </button>
+            ${canDelete ? `<button class="shrink-0 text-xs uppercase tracking-[0.12em] text-red-200/70 hover:text-red-100" type="button" data-delete="${escapeHtml(show.id)}">Delete</button>` : ""}
+          </div>
+        `;
+        elements.list.appendChild(item);
+      });
+    };
+
+    const renderMap = () => {
+      const allShows = getAllShows();
+      markerLayer.clearLayers();
+
+      allShows.forEach((show) => {
+        const icon = show.source === "custom" ? userMarkerIcon : markerIcon;
+        L.marker(show.coordinates, { icon })
+          .addTo(markerLayer)
+          .bindPopup(popupTemplate(show), {
+            className: "fazi-popup",
+            closeButton: true,
+            maxWidth: 320
+          });
+      });
+
+      renderShowList();
+    };
+
+    const setStatus = (message, tone = "neutral") => {
+      const toneClass = {
+        neutral: "text-neutral-400",
+        good: "text-red-100",
+        error: "text-red-200"
+      }[tone];
+
+      elements.status.className = `min-h-5 text-xs ${toneClass}`;
+      elements.status.textContent = message;
+    };
+
+    const applyTheme = (theme) => {
+      const nextTheme = theme === "light" ? "light" : "dark";
+      document.body.classList.toggle("light-mode", nextTheme === "light");
+      tileLayer.setUrl(tileLayers[nextTheme]);
+      localStorage.setItem("fazi-map-theme", nextTheme);
+      elements.themeToggle.setAttribute("aria-pressed", String(nextTheme === "light"));
+      elements.themeToggle.title = nextTheme === "light" ? "切换到关灯模式" : "切换到开灯模式";
+    };
+
+    const getAddressQueries = () => {
+      const address = elements.address.value.trim();
+      const city = elements.city.value.trim();
+      const candidates = [
+        address,
+        [address, city].filter(Boolean).join(", ")
+      ];
+
+      return [...new Set(candidates.filter(Boolean))];
+    };
+
+    const locateAddress = async ({ pan = true } = {}) => {
+      const queries = getAddressQueries();
+
+      if (!queries.length) {
+        setStatus("请先输入具体地址，或手动填写经纬度。", "error");
+        return false;
+      }
+
+      setStatus("正在定位地址...", "neutral");
+
+      try {
+        let results = [];
+
+        for (const query of queries) {
+          const params = new URLSearchParams({
+            format: "jsonv2",
+            limit: "1",
+            "accept-language": "zh-CN",
+            q: query
+          });
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+
+          if (!response.ok) {
+            throw new Error(`Geocode failed: ${response.status}`);
+          }
+
+          results = await response.json();
+
+          if (Array.isArray(results) && results.length) {
+            break;
+          }
+        }
+
+        if (!Array.isArray(results) || !results.length) {
+          setStatus("没找到这个地址。可以试试英文地址、门牌号+路名+城市，或手动输入经纬度。", "error");
+          return false;
+        }
+
+        const lat = Number(results[0].lat);
+        const lng = Number(results[0].lon);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          setStatus("定位结果不可用。", "error");
+          return false;
+        }
+
+        setDraftPosition({ lat, lng });
+
+        if (pan) {
+          map.flyTo([lat, lng], 12, { duration: 0.9 });
+        }
+
+        setStatus("地址已定位。", "good");
+        return true;
+      } catch (error) {
+        setStatus("地址定位失败。可以试试英文地址，或手动输入经纬度。", "error");
+        console.error(error);
+        return false;
+      }
+    };
+
+    elements.form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!elements.lat.value || !elements.lng.value) {
+        const located = await locateAddress({ pan: false });
+
+        if (!located) {
+          return;
+        }
+      }
+
+      const lat = Number(elements.lat.value);
+      const lng = Number(elements.lng.value);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        setStatus("坐标范围不正确。", "error");
+        return;
+      }
+
+      const show = {
+        id: Date.now(),
+        date: elements.date.value,
+        city: elements.city.value.trim(),
+        venue: elements.venue.value.trim(),
+        address: elements.address.value.trim(),
+        links: parseLinks(elements.links.value),
+        coordinates: [lat, lng],
+        source: "custom"
+      };
+
+      customShows.push(show);
+      saveCustomShows();
+      renderMap();
+      fitAllShows();
+      elements.form.reset();
+
+      if (draftMarker) {
+        map.removeLayer(draftMarker);
+        draftMarker = null;
+      }
+
+      setStatus("已添加到本地地图。", "good");
+    });
+
+    elements.locateAddress.addEventListener("click", () => {
+      locateAddress();
+    });
+
+    elements.useCenter.addEventListener("click", () => {
+      setDraftPosition(map.getCenter());
+      setStatus("已使用当前地图中心坐标。", "good");
+    });
+
+    elements.fitRoute.addEventListener("click", fitAllShows);
+
+    elements.themeToggle.addEventListener("click", () => {
+      const isLight = document.body.classList.contains("light-mode");
+      applyTheme(isLight ? "dark" : "light");
+    });
+
+    document.addEventListener("submit", (event) => {
+      const form = event.target.closest("[data-link-form]");
+
+      if (!form) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const id = Number(form.dataset.linkForm);
+      const input = form.querySelector("[data-link-input]");
+      const link = normalizeUrl(input.value);
+
+      if (!link) {
+        return;
+      }
+
+      const show = getAllShows().find((entry) => entry.id === id);
+
+      if (!show) {
+        return;
+      }
+
+      const links = getShowLinks(show);
+
+      if (!links.includes(link)) {
+        show.links = [...links, link];
+      }
+
+      if (show.source === "custom") {
+        const target = customShows.find((entry) => entry.id === id);
+
+        if (target) {
+          target.links = show.links;
+          saveCustomShows();
+        }
+      }
+
+      input.value = "";
+      renderMap();
+      setStatus("链接已加入这场演出。", "good");
+
+      const refreshed = getAllShows().find((entry) => entry.id === id);
+
+      if (refreshed) {
+        L.popup({
+          className: "fazi-popup",
+          closeButton: true,
+          maxWidth: 320
+        })
+          .setLatLng(refreshed.coordinates)
+          .setContent(popupTemplate(refreshed))
+          .openOn(map);
+      }
+    });
+
+    elements.clearCustom.addEventListener("click", () => {
+      customShows = [];
+      saveCustomShows();
+      renderMap();
+      fitAllShows();
+      setStatus("已清空本地输入。", "neutral");
+    });
+
+    elements.list.addEventListener("click", (event) => {
+      const flyButton = event.target.closest("[data-fly-to]");
+      const deleteButton = event.target.closest("[data-delete]");
+
+      if (deleteButton) {
+        const id = Number(deleteButton.dataset.delete);
+        customShows = customShows.filter((show) => show.id !== id);
+        saveCustomShows();
+        renderMap();
+        setStatus("已删除。", "neutral");
+        return;
+      }
+
+      if (flyButton) {
+        const id = Number(flyButton.dataset.flyTo);
+        const show = getAllShows().find((entry) => entry.id === id);
+
+        if (show) {
+          map.flyTo(show.coordinates, 9, { duration: 0.9 });
+        }
+      }
+    });
+
+    map.on("click", (event) => {
+      setDraftPosition(event.latlng);
+      setStatus("已选中地图坐标。", "good");
+    });
+
+    async function loadShows() {
+      const useShows = (shows) => {
+        sampleShows = shows.map((show) => ({
+          ...show,
+          source: "sample"
+        }));
+        customShows = readCustomShows();
+        renderMap();
+        fitAllShows();
+        setTimeout(() => {
+          map.invalidateSize();
+          fitAllShows();
+        }, 120);
+      };
+
+      try {
+        if (window.location.protocol === "file:") {
+          useShows(EMBEDDED_SHOWS);
+          return;
+        }
+
+        const response = await fetch("shows.json");
+
+        if (!response.ok) {
+          throw new Error(`Unable to load shows.json: ${response.status}`);
+        }
+
+        const shows = await response.json();
+        useShows(shows);
+      } catch (error) {
+        useShows(EMBEDDED_SHOWS);
+        setStatus("已使用内置演出数据。", "neutral");
+        console.error(error);
+      }
+    }
+
+    applyTheme(localStorage.getItem("fazi-map-theme") || "light");
+    loadShows();
+  </script>
+</body>
+</html>
