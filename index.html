@@ -302,7 +302,7 @@
       light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
     };
 
-    const tileLayer = L.tileLayer(tileLayers.dark, {
+    const tileLayer = L.tileLayer(tileLayers.dark, { // 默认设置为 dark 主题
       minZoom: 2,
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -502,19 +502,18 @@
 
     async function loadShows() {
       try {
-        // 请求加入时间戳参数防止浏览器缓存死死卡住旧数据
+        // 读取并解析公共的统一数据源 show.json 
         const response = await fetch("show.json?v=" + new Date().getTime());
         if (!response.ok) {
           throw new Error(`Unable to load show.json: ${response.status}`);
         }
         const shows = await response.json();
         
-        // 为每一项生成唯一标示ID并整理数据结构
         sampleShows = shows.map((show, index) => ({
           ...show,
           id: show.id || `show-${index}-${new Date(show.date).getTime()}`,
           links: show.links || []
-        })).sort((a, b) => new Date(b.date) - new Date(a.date)); // 按时间倒序在列表展示
+        })).sort((a, b) => new Date(b.date) - new Date(a.date));
 
         renderMap();
         fitAllShows();
@@ -528,6 +527,7 @@
       }
     }
 
+    // 默认优先读取 localStorage 的主题状态，缺省为黑夜暗色主题 (dark)
     applyTheme(localStorage.getItem("fazi-map-theme") || "dark");
     loadShows();
   </script>
