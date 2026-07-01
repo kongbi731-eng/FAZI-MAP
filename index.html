@@ -965,10 +965,10 @@
           return;
         }
 
-        const response = await fetch("shows.json");
+        const response = await fetch("show.json");
 
         if (!response.ok) {
-          throw new Error(`Unable to load shows.json: ${response.status}`);
+          throw new Error(`Unable to load show.json: ${response.status}`);
         }
 
         const shows = await response.json();
